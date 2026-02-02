@@ -77,7 +77,12 @@ namespace VirtoCommerce.Platform.Data.GenericCrud
             if (idsResult.Results.Any())
             {
                 var models = await _crudService.GetAsync(idsResult.Results, criteria.ResponseGroup, clone);
-                result.Results.AddRange(models.OrderBy(x => idsResult.Results.IndexOf(x.Id)));
+                
+                // Use Dictionary for O(1) lookups instead of O(n) IndexOf in OrderBy
+                var orderDict = idsResult.Results.Select((id, index) => new { id, index })
+                                                  .ToDictionary(x => x.id, x => x.index);
+                
+                result.Results.AddRange(models.OrderBy(x => orderDict.TryGetValue(x.Id, out var index) ? index : int.MaxValue));
             }
 
             return await ProcessSearchResultAsync(result, criteria);

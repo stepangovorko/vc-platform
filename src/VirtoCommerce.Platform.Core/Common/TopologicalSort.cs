@@ -22,6 +22,10 @@ namespace VirtoCommerce.Platform.Core.Common
             // Set of all nodes with no incoming edges
             var S = new HashSet<T>(nodes.Where(n => edges.All(e => !e.Item2.Equals(n))));
 
+            // Build a lookup dictionary for edges by source node to avoid O(n²) searches
+            var edgesBySource = edges.GroupBy(e => e.Item1)
+                                     .ToDictionary(g => g.Key, g => g.ToList());
+
             // while S is non-empty do
             while (S.Any())
             {
@@ -34,18 +38,22 @@ namespace VirtoCommerce.Platform.Core.Common
                 L.Add(n);
 
                 // for each node m with an edge e from n to m do
-                foreach (var e in edges.Where(e => e.Item1.Equals(n)).ToList())
+                if (edgesBySource.TryGetValue(n, out var nodeEdges))
                 {
-                    var m = e.Item2;
-
-                    // remove edge e from the graph
-                    edges.Remove(e);
-
-                    // if m has no other incoming edges then
-                    if (edges.All(me => !me.Item2.Equals(m)))
+                    foreach (var e in nodeEdges.ToList())
                     {
-                        // insert m into S
-                        S.Add(m);
+                        var m = e.Item2;
+
+                        // remove edge e from the graph
+                        edges.Remove(e);
+                        nodeEdges.Remove(e);
+
+                        // if m has no other incoming edges then
+                        if (edges.All(me => !me.Item2.Equals(m)))
+                        {
+                            // insert m into S
+                            S.Add(m);
+                        }
                     }
                 }
             }
