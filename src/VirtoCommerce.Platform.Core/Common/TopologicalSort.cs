@@ -23,8 +23,9 @@ namespace VirtoCommerce.Platform.Core.Common
             var S = new HashSet<T>(nodes.Where(n => edges.All(e => !e.Item2.Equals(n))));
 
             // Build a lookup dictionary for edges by source node to avoid O(n²) searches
+            // Use HashSet for O(1) removal operations
             var edgesBySource = edges.GroupBy(e => e.Item1)
-                                     .ToDictionary(g => g.Key, g => g.ToList());
+                                     .ToDictionary(g => g.Key, g => new HashSet<Tuple<T, T>>(g));
 
             // while S is non-empty do
             while (S.Any())

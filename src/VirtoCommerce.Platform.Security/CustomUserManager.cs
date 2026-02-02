@@ -265,16 +265,19 @@ namespace VirtoCommerce.Platform.Security
             var targetLogins = await GetLoginsAsync(user);
             var sourceLogins = user.Logins.Select(x => new UserLoginInfo(x.LoginProvider, x.ProviderKey, null)).ToList();
 
-            // Use HashSet for O(1) lookups instead of O(n) All() operations
-            var targetLoginKeys = new HashSet<string>(targetLogins.Select(x => x.LoginProvider + x.ProviderKey));
-            var sourceLoginKeys = new HashSet<string>(sourceLogins.Select(x => x.LoginProvider + x.ProviderKey));
+            // Helper function to create composite login key
+            static string GetLoginKey(UserLoginInfo login) => login.LoginProvider + login.ProviderKey;
 
-            foreach (var item in sourceLogins.Where(x => !targetLoginKeys.Contains(x.LoginProvider + x.ProviderKey)))
+            // Use HashSet for O(1) lookups instead of O(n) All() operations
+            var targetLoginKeys = new HashSet<string>(targetLogins.Select(GetLoginKey));
+            var sourceLoginKeys = new HashSet<string>(sourceLogins.Select(GetLoginKey));
+
+            foreach (var item in sourceLogins.Where(x => !targetLoginKeys.Contains(GetLoginKey(x))))
             {
                 await AddLoginAsync(user, item);
             }
 
-            foreach (var item in targetLogins.Where(x => !sourceLoginKeys.Contains(x.LoginProvider + x.ProviderKey)))
+            foreach (var item in targetLogins.Where(x => !sourceLoginKeys.Contains(GetLoginKey(x))))
             {
                 await RemoveLoginAsync(user, item.LoginProvider, item.ProviderKey);
             }
