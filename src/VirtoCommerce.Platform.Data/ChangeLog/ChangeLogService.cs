@@ -68,9 +68,13 @@ namespace VirtoCommerce.Platform.Data.ChangeLog
             {
                 var ids = operationLogs.Where(x => !x.IsTransient()).Select(x => x.Id).Distinct().ToArray();
                 var existEntities = await repository.GetOperationLogsByIdsAsync(ids);
+                
+                // Use Dictionary for O(1) lookups instead of O(n) FirstOrDefault in loop
+                var existEntitiesDict = existEntities.ToDictionary(x => x.Id);
+                
                 foreach (var operation in operationLogs)
                 {
-                    var existsEntity = existEntities.FirstOrDefault(x => x.Id == operation.Id);
+                    existEntitiesDict.TryGetValue(operation.Id, out var existsEntity);
                     var modifiedEntity = AbstractTypeFactory<OperationLogEntity>.TryCreateInstance().FromModel(operation, pkMap);
                     if (existsEntity != null)
                     {
